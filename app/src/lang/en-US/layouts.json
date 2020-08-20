@@ -21,7 +21,13 @@
 			"per_page": "Per Page"
 		},
 		"calendar": {
-			"calendar": "Calendar"
+			"calendar": "Calendar",
+			"date": "Date",
+			"time": "Time",
+			"datetime": "Datetime",
+			"title": "Title",
+			"color": "Color",
+			"today": "Today"
 		}
 	}
 }
