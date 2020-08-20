@@ -19,6 +19,9 @@
 			"compact": "Compact",
 			"cozy": "Cozy",
 			"per_page": "Per Page"
+		},
+		"calendar": {
+			"calendar": "Calendar"
 		}
 	}
 }
