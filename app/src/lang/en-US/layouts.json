@@ -27,7 +27,11 @@
 			"datetime": "Datetime",
 			"title": "Title",
 			"color": "Color",
-			"today": "Today"
+			"today": "Today",
+			"month": "Month",
+			"week": "Week",
+			"day": "Day",
+			"agenda": "Agenda"
 		}
 	}
 }
