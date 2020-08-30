@@ -32,7 +32,10 @@
 			"month": "Month",
 			"week": "Week",
 			"day": "Day",
-			"agenda": "Agenda"
+			"agenda": "Agenda",
+			"animations": "Animations",
+			"animations-enabled": "Enabled",
+			"animations-disabled": "Disabled"
 		}
 	}
 }
