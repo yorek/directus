@@ -25,6 +25,7 @@
 			"date": "Date",
 			"time": "Time",
 			"datetime": "Datetime",
+			"date-time": "Date & Time",
 			"title": "Title",
 			"color": "Color",
 			"today": "Today",
@@ -35,7 +36,10 @@
 			"agenda": "Agenda",
 			"animations": "Animations",
 			"animations-enabled": "Enabled",
-			"animations-disabled": "Disabled"
+			"animations-disabled": "Disabled",
+			"add-item": "add new Item",
+			"no-events": "There are no events in between",
+			"and": "and"
 		}
 	}
 }
