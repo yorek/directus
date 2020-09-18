@@ -1,8 +1,8 @@
 import { defineModule } from '@/modules/define';
-import CollectionsOverview from './routes/overview/';
-import CollectionsBrowseOrDetail from './routes/browse-or-detail/';
-import CollectionsDetail from './routes/detail/';
-import CollectionsItemNotFound from './routes/not-found';
+import CollectionsOverview from './routes/overview.vue';
+import CollectionsBrowseOrDetail from './routes/browse-or-detail.vue';
+import CollectionsDetail from './routes/detail.vue';
+import CollectionsItemNotFound from './routes/not-found.vue';
 import { NavigationGuard } from 'vue-router';
 
 const checkForSystem: NavigationGuard = (to, from, next) => {
@@ -29,6 +29,14 @@ const checkForSystem: NavigationGuard = (to, from, next) => {
 			return next(`/activity/${to.params.primaryKey}`);
 		} else {
 			return next('/activity');
+		}
+	}
+
+	if (to.params.collection === 'directus_webhooks') {
+		if (to.params.primaryKey) {
+			return next(`/settings/webhooks/${to.params.primaryKey}`);
+		} else {
+			return next('/settings/webhooks');
 		}
 	}
 
@@ -69,4 +77,5 @@ export default defineModule(({ i18n }) => ({
 			beforeEnter: checkForSystem,
 		},
 	],
+	order: 5,
 }));

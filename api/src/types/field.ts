@@ -15,13 +15,14 @@ export const types = [
 	'timestamp',
 	'binary',
 	'uuid',
+	'csv',
 ] as const;
 
 export type FieldMeta = {
 	id: number;
 	collection: string;
 	field: string;
-	special: string | null;
+	special: string[] | null;
 	interface: string | null;
 	options: Record<string, any> | null;
 	locked: boolean;

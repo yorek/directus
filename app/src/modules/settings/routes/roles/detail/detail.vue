@@ -1,5 +1,5 @@
 <template>
-	<private-view :title="loading ? $t('loading') : (isNew === false)? $t('editing_role', { role: item && item.name }) : $t('creating_role') ">
+	<private-view :title="loading ? $t('loading') : $t('editing_role', { role: item && item.name })">
 		<template #headline>{{ $t('settings_permissions') }}</template>
 		<template #title-outer:prepend>
 			<v-button class="header-icon" rounded icon exact :to="`/settings/roles/`">
@@ -17,7 +17,7 @@
 						@click="on"
 						v-tooltip.bottom="$t('delete')"
 					>
-						<v-icon name="delete" />
+						<v-icon name="delete" outline />
 					</v-button>
 				</template>
 
@@ -44,15 +44,6 @@
 				v-tooltip.bottom="$t('save')"
 			>
 				<v-icon name="check" />
-
-				<template #append-outer>
-					<save-options
-						:disabled="hasEdits === false"
-						@save-and-stay="saveAndStay"
-						@save-and-add-new="saveAndAddNew"
-						@save-as-copy="saveAsCopyAndNavigate"
-					/>
-				</template>
 			</v-button>
 		</template>
 
@@ -61,23 +52,11 @@
 		</template>
 
 		<div class="roles">
-			<div class="permissions" v-if="primaryKey != 1">
-				<h2 class="title type-label">
-					{{ $t('permissions') }}
-					<span class="instant-save">{{ $t('saves_automatically') }}</span>
-				</h2>
+			<v-notice v-if="adminEnabled" type="info">
+				{{ $t('admins_have_all_permissions') }}
+			</v-notice>
+			<permissions-overview v-else :role="primaryKey" :permission="permissionKey" />
 
-				<v-skeleton-loader v-if="loading" />
-				<template v-else>
-					<v-notice v-if="(edits.admin !== undefined ? edits.admin : item && item.admin) === true">
-						{{ $t('admins_have_all_permissions') }}
-					</v-notice>
-
-					<v-notice v-else>
-						Pre-Release: Feature not yet available
-					</v-notice>
-				</template>
-			</div>
 			<v-form
 				collection="directus_roles"
 				:primary-key="primaryKey"
@@ -89,8 +68,8 @@
 		</div>
 
 		<template #drawer>
-			<role-info-drawer-detail :is-new="isNew" :role="item" />
-			<revisions-drawer-detail v-if="isNew === false" collection="directus_roles" :primary-key="primaryKey" />
+			<role-info-drawer-detail :role="item" />
+			<revisions-drawer-detail collection="directus_roles" :primary-key="primaryKey" />
 		</template>
 	</private-view>
 </template>
@@ -98,13 +77,13 @@
 <script lang="ts">
 import { defineComponent, computed, toRefs, ref } from '@vue/composition-api';
 
-import SettingsNavigation from '../../../components/navigation/';
+import SettingsNavigation from '../../../components/navigation.vue';
 import router from '@/router';
 import RevisionsDrawerDetail from '@/views/private/components/revisions-drawer-detail';
 import useItem from '@/composables/use-item';
-import SaveOptions from '@/views/private/components/save-options';
 import { useUserStore } from '@/stores/';
-import RoleInfoDrawerDetail from './components/role-info-drawer-detail';
+import RoleInfoDrawerDetail from './components/role-info-drawer-detail.vue';
+import PermissionsOverview from './components/permissions-overview.vue';
 
 type Values = {
 	[field: string]: any;
@@ -112,11 +91,15 @@ type Values = {
 
 export default defineComponent({
 	name: 'roles-detail',
-	components: { SettingsNavigation, RevisionsDrawerDetail, SaveOptions, RoleInfoDrawerDetail },
+	components: { SettingsNavigation, RevisionsDrawerDetail, RoleInfoDrawerDetail, PermissionsOverview },
 	props: {
 		primaryKey: {
 			type: String,
 			required: true,
+		},
+		permissionKey: {
+			type: String,
+			default: null,
 		},
 	},
 	setup(props) {
@@ -124,7 +107,7 @@ export default defineComponent({
 
 		const { primaryKey } = toRefs(props);
 
-		const { isNew, edits, item, saving, loading, error, save, remove, deleting, saveAsCopy, isBatch } = useItem(
+		const { edits, item, saving, loading, error, save, remove, deleting, isBatch } = useItem(
 			ref('directus_roles'),
 			primaryKey
 		);
@@ -133,11 +116,19 @@ export default defineComponent({
 
 		const confirmDelete = ref(false);
 
+		const adminEnabled = computed(() => {
+			const values = {
+				...item.value,
+				...edits.value,
+			};
+
+			return !!values.admin;
+		});
+
 		return {
 			item,
 			loading,
 			error,
-			isNew,
 			edits,
 			hasEdits,
 			saving,
@@ -145,10 +136,8 @@ export default defineComponent({
 			deleteAndQuit,
 			confirmDelete,
 			deleting,
-			saveAndStay,
-			saveAndAddNew,
-			saveAsCopyAndNavigate,
 			isBatch,
+			adminEnabled,
 		};
 
 		/**
@@ -162,22 +151,6 @@ export default defineComponent({
 			await save();
 			await userStore.hydrate();
 			router.push(`/settings/roles`);
-		}
-
-		async function saveAndStay() {
-			await save();
-			await userStore.hydrate();
-		}
-
-		async function saveAndAddNew() {
-			await save();
-			await userStore.hydrate();
-			router.push(`/settings/roles/+`);
-		}
-
-		async function saveAsCopyAndNavigate() {
-			const newPrimaryKey = await saveAsCopy();
-			router.push(`/settings/roles/${newPrimaryKey}`);
 		}
 
 		async function deleteAndQuit() {
@@ -213,16 +186,8 @@ export default defineComponent({
 	--v-button-color-hover: var(--warning);
 }
 
-.title {
-	margin-bottom: 12px;
-
-	.instant-save {
-		margin-left: 4px;
-		color: var(--warning);
-	}
-}
-
-.permissions {
+.permissions-overview,
+.roles .v-notice {
 	margin-bottom: 48px;
 }
 </style>

@@ -13,6 +13,7 @@ export type NavItem = {
 
 export type NavItemGroup = {
 	name: string;
+	accordion: string;
 	items: NavItem[];
 };
 
@@ -23,11 +24,12 @@ export default function useNavigation() {
 
 	const customNavItems = computed<NavItemGroup[] | null>(() => {
 		if (!userStore.state.currentUser) return null;
-		if (!userStore.state.currentUser.role.collection_listing) return null;
+		if (!userStore.state.currentUser.role.collection_list) return null;
 
-		return userStore.state.currentUser?.role.collection_listing.map((groupRaw) => {
+		return userStore.state.currentUser?.role.collection_list.map((groupRaw) => {
 			const group: NavItemGroup = {
 				name: groupRaw.group_name,
+				accordion: groupRaw.accordion,
 				items: groupRaw.collections
 					.map(({ collection }) => {
 						const collectionInfo = collectionsStore.getCollection(collection);
@@ -37,7 +39,7 @@ export default function useNavigation() {
 						const navItem: NavItem = {
 							collection: collection,
 							name: collectionInfo.name,
-							icon: collectionInfo.meta?.icon || 'box',
+							icon: collectionInfo.meta?.icon || 'label',
 							to: `/collections/${collection}`,
 						};
 
@@ -56,7 +58,7 @@ export default function useNavigation() {
 				const navItem: NavItem = {
 					collection: collection.collection,
 					name: collection.name,
-					icon: collection.meta?.icon || 'box',
+					icon: collection.meta?.icon || 'label',
 					to: `/collections/${collection.collection}`,
 				};
 

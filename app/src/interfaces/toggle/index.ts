@@ -3,10 +3,12 @@ import { defineInterface } from '@/interfaces/define';
 
 export default defineInterface(({ i18n }) => ({
 	id: 'toggle',
-	name: i18n.t('toggle'),
+	name: i18n.t('interfaces.toggle.toggle'),
+	description: i18n.t('interfaces.toggle.description'),
 	icon: 'check_box',
 	component: InterfaceToggle,
 	types: ['boolean'],
+	recommendedDisplays: ['boolean'],
 	options: [
 		{
 			field: 'iconOff',
@@ -15,8 +17,7 @@ export default defineInterface(({ i18n }) => ({
 			meta: {
 				width: 'half',
 				interface: 'icon',
-				default_value: 'check_box_outline_blank',
-			}
+			},
 		},
 		{
 			field: 'iconOn',
@@ -25,8 +26,7 @@ export default defineInterface(({ i18n }) => ({
 			meta: {
 				width: 'half',
 				interface: 'icon',
-				default_value: 'check_box',
-			}
+			},
 		},
 		{
 			field: 'label',
@@ -35,8 +35,13 @@ export default defineInterface(({ i18n }) => ({
 			meta: {
 				width: 'half',
 				interface: 'text-input',
-				default_value: i18n.t('active'),
-			}
+				options: {
+					placeholder: i18n.t('interfaces.toggle.label_placeholder'),
+				},
+			},
+			schema: {
+				default_value: i18n.t('interfaces.toggle.label_default'),
+			},
 		},
 		{
 			field: 'color',
@@ -45,8 +50,7 @@ export default defineInterface(({ i18n }) => ({
 			meta: {
 				width: 'half',
 				interface: 'color',
-				default_value: 'var(--primary)',
-			}
+			},
 		},
 	],
 }));

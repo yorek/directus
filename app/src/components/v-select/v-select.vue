@@ -26,7 +26,7 @@
 			</v-input>
 		</template>
 
-		<v-list dense>
+		<v-list dense class="list">
 			<template v-if="showDeselect">
 				<v-list-item @click="$emit('input', null)" :disabled="value === null">
 					<v-list-item-icon v-if="multiple === true">
@@ -42,24 +42,28 @@
 				<v-divider />
 			</template>
 
-			<v-list-item
-				v-for="item in _items"
-				:key="item.text + item.value"
-				:active="multiple ? (value || []).includes(item.value) : value === item.value"
-				:disabled="item.disabled"
-				@click="multiple ? null : $emit('input', item.value)"
-			>
-				<v-list-item-content>
-					<span v-if="multiple === false" class="item-text">{{ item.text }}</span>
-					<v-checkbox
-						v-else
-						:inputValue="value || []"
-						:label="item.text"
-						:value="item.value"
-						@change="$emit('input', $event.length > 0 ? $event : null)"
-					/>
-				</v-list-item-content>
-			</v-list-item>
+			<template v-for="(item, index) in _items">
+				<v-divider :key="index" v-if="item.divider === true" />
+
+				<v-list-item
+					v-else
+					:key="item.text + item.value"
+					:active="multiple ? (value || []).includes(item.value) : value === item.value"
+					:disabled="item.disabled"
+					@click="multiple ? null : $emit('input', item.value)"
+				>
+					<v-list-item-content>
+						<span v-if="multiple === false" class="item-text">{{ item.text }}</span>
+						<v-checkbox
+							v-else
+							:inputValue="value || []"
+							:label="item.text"
+							:value="item.value"
+							@change="$emit('input', $event.length > 0 ? $event : null)"
+						/>
+					</v-list-item-content>
+				</v-list-item>
+			</template>
 
 			<v-list-item v-if="allowOther && multiple === false" :active="usesOtherValue" @click.stop>
 				<v-list-item-content>
@@ -206,6 +210,8 @@ export default defineComponent({
 						};
 					}
 
+					if (item.divider === true) return { divider: true };
+
 					return {
 						text: item[props.itemText],
 						value: item[props.itemValue],
@@ -260,6 +266,10 @@ body {
 </style>
 
 <style lang="scss" scoped>
+.list {
+	--v-list-min-width: 0;
+}
+
 .item-text {
 	font-family: var(--v-select-font-family);
 }

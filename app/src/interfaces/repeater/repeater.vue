@@ -1,5 +1,5 @@
 <template>
-	<v-item-group class="repeater">
+	<v-item-group class="repeater" v-model="selection">
 		<draggable :value="value" handle=".drag-handle" @input="onSort" :set-data="hideDragImage">
 			<repeater-row
 				v-for="(row, index) in value"
@@ -14,13 +14,13 @@
 		</draggable>
 		<button @click="addNew" class="add-new" v-if="showAddNew">
 			<v-icon name="add" />
-			{{ createItemText }}
+			{{ addLabel }}
 		</button>
 	</v-item-group>
 </template>
 
 <script lang="ts">
-import { defineComponent, PropType, computed } from '@vue/composition-api';
+import { defineComponent, PropType, computed, ref } from '@vue/composition-api';
 import RepeaterRow from './repeater-row.vue';
 import { Field } from '@/types';
 import Draggable from 'vuedraggable';
@@ -42,7 +42,7 @@ export default defineComponent({
 			type: String,
 			required: true,
 		},
-		createItemText: {
+		addLabel: {
 			type: String,
 			default: i18n.t('add_a_new_item'),
 		},
@@ -56,15 +56,17 @@ export default defineComponent({
 		},
 	},
 	setup(props, { emit }) {
+		const selection = ref<number[]>([]);
+
 		const showAddNew = computed(() => {
 			if (props.disabled) return false;
 			if (props.value === null) return true;
 			if (props.limit === null) return true;
-			if (Array.isArray(props.value) && props.value.length <= props.limit) return true;
+			if (Array.isArray(props.value) && props.value.length < props.limit) return true;
 			return false;
 		});
 
-		return { updateValues, onSort, removeItem, addNew, showAddNew, hideDragImage };
+		return { updateValues, onSort, removeItem, addNew, showAddNew, hideDragImage, selection };
 
 		function updateValues(index: number, updatedValues: any) {
 			emit(
@@ -84,6 +86,7 @@ export default defineComponent({
 		}
 
 		function removeItem(row: any) {
+			selection.value = [];
 			if (props.value) {
 				emit(
 					'input',
@@ -101,6 +104,9 @@ export default defineComponent({
 				// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
 				newDefaults[field.field!] = field.schema?.default_value;
 			});
+
+			// select the new row
+			selection.value = [props.value?.length || 0];
 
 			if (props.value !== null) {
 				emit('input', [...props.value, newDefaults]);

@@ -1,6 +1,12 @@
-import TabularLayout from './tabular/';
-import CardsLayout from './cards/';
-import CalendarLayout from './calendar/';
+import { ref, Ref } from '@vue/composition-api';
+import { LayoutConfig } from './types';
 
-export const layouts = [TabularLayout, CardsLayout, CalendarLayout];
-export default layouts;
+let layouts: Ref<LayoutConfig[]>;
+
+export function getLayouts() {
+	if (!layouts) {
+		layouts = ref([]);
+	}
+
+	return layouts;
+}

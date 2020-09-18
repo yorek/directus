@@ -23,6 +23,7 @@ export const types = [
 	'timestamp',
 	'binary',
 	'uuid',
+	'csv',
 	'unknown',
 ] as const;
 
@@ -59,7 +60,7 @@ export type FieldMeta = {
 	readonly: boolean;
 	required: boolean;
 	sort: number | null;
-	special: string | null;
+	special: string[] | null;
 	translation: null | Translation[];
 	width: Width | null;
 	note: string | TranslateResult | null;
@@ -76,6 +77,4 @@ export interface FieldRaw {
 
 export interface Field extends FieldRaw {
 	name: string | TranslateResult;
-	type: typeof types[number];
-	meta: FieldMeta;
 }

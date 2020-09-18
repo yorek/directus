@@ -56,7 +56,7 @@ const localTypeMap: Record<string, { type: typeof types[number]; useTimezone?: b
 
 	// Postgres
 	json: { type: 'json' },
-	uuid: { type: 'string' },
+	uuid: { type: 'uuid' },
 	int2: { type: 'integer' },
 	serial4: { type: 'integer' },
 	int4: { type: 'integer' },
@@ -78,8 +78,15 @@ const localTypeMap: Record<string, { type: typeof types[number]; useTimezone?: b
 	float8: { type: 'float' },
 };
 
-export default function getLocalType(databaseType: string): typeof types[number] | 'unknown' {
+export default function getLocalType(
+	databaseType: string,
+	special?: string[] | null
+): typeof types[number] | 'unknown' {
 	const type = localTypeMap[databaseType.toLowerCase().split('(')[0]];
+
+	if (special?.includes('json')) return 'json';
+	if (special?.includes('csv')) return 'csv';
+	if (special?.includes('uuid')) return 'uuid';
 
 	if (type) {
 		return type.type;

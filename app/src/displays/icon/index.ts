@@ -1,25 +1,37 @@
 import { defineDisplay } from '@/displays/define';
 import DisplayIcon from './icon.vue';
-import { types } from '@/types';
 
 export default defineDisplay(({ i18n }) => ({
 	id: 'icon',
-	name: i18n.t('icon'),
-	icon: 'thumb_up',
+	name: i18n.t('displays.icon.icon'),
+	description: i18n.t('displays.icon.description'),
+	icon: 'insert_emoticon',
 	handler: DisplayIcon,
 	options: [
 		{
-			field: 'outline',
-			name: i18n.t('outline'),
+			field: 'filled',
+			name: i18n.t('displays.icon.filled'),
 			type: 'boolean',
 			meta: {
 				interface: 'toggle',
 				width: 'half',
 				options: {
-					label: i18n.t('use_outline_variant'),
+					label: i18n.t('displays.icon.filled_label'),
 				},
+			},
+			schema: {
+				default_value: false,
+			},
+		},
+		{
+			field: 'color',
+			name: i18n.t('color'),
+			type: 'string',
+			meta: {
+				interface: 'color',
+				width: 'half',
 			},
 		},
 	],
-	types: types,
+	types: ['string'],
 }));
