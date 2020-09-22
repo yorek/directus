@@ -16,6 +16,9 @@
 
 	"show_archived_items": "Show Archived Items",
 
+	"required": "Required",
+	"requires_value": "Requires value",
+
 	"create_preset": "Create Preset",
 	"create_role": "Create Role",
 	"create_user": "Create User",
@@ -162,6 +165,10 @@
 	"hidden_fields": "Hidden Fields",
 	"hidden_field": "Hidden Field",
 
+	"hidden_on_detail": "Hidden on Detail",
+
+	"disabled_editing_value": "Disable editing value",
+
 	"key": "Key",
 
 	"alias": "Alias",
@@ -232,7 +239,6 @@
 	"enter_a_value": "Enter a value...",
 	"enter_a_placeholder": "Enter a placeholder...",
 	"length": "Length",
-	"required": "Required",
 	"readonly": "Readonly",
 	"hide_on_detail": "Hide on Detail",
 	"hide_on_browse": "Hide on Browse",
@@ -764,7 +770,7 @@
 	"add_tags": "Add tags...",
 	"full": "All",
 	"mine": "Mine Only",
-	"on_create": "On Creation",
+	"on_create": "On Create",
 	"on_update": "On Update",
 	"read": "Read",
 	"role_only": "Role Only",
@@ -1022,7 +1028,7 @@
 		"description": "Description",
 		"ip_access": "IP Access",
 		"app_access": "App Access",
-		"admin": "Admin Access",
+		"admin_access": "Admin Access",
 		"enforce_tfa": "Require 2FA",
 		"users": "Users in Role",
 		"module_list": "Module Navigation",

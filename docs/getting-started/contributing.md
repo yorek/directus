@@ -31,4 +31,16 @@ Update any relevant docs with an PRs
 ---
 ## Prerequisites
 ## Development Workflow
+
+1) Clone the repo
+2) Run `npx lerna bootstrap`
+
+In case of unexpected weirdness, reinstall the dependencies by running
+
+```
+npx lerna clean -y && npx lerna bootstrap
+```
+
+You can run a dev server for the app and api by running `npm run dev` in the app or api folder respectively.
+
 ## Before Submitting a Pull-Request

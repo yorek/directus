@@ -11,7 +11,6 @@ import ms from 'ms';
 import cookieParser from 'cookie-parser';
 import env from '../env';
 import UsersService from '../services/users';
-import { respond } from '../middleware/respond';
 
 const router = Router();
 
@@ -241,7 +240,5 @@ router.get(
 		return next();
 	})
 );
-
-router.use(respond);
 
 export default router;

@@ -18,21 +18,17 @@ Directus is a real-time API and App dashboard for managing SQL database content.
 
 <br>
 
-## 🚧 Alpha
+## 🚧 Beta
 
 **DO NOT USE THIS VERSION IN PRODUCTION.**
 
 This is *pre-release* software, therefore migrations will not be provided, breaking changes may occur at any time, and certain features might be missing or broken. You can follow along with [the issue tracker](https://github.com/directus/next/issues) for an in-depth list of upcoming enhancements, with the following notable features still under development:
 
 - [ ] GraphQL Endpoint
-- [x] App Permissions
 - [ ] MS SQL Support
 - [ ] OracleDB Support
-- [ ] Webhooks
 - [ ] Import/Export Endpoints
-- [x] Caching
-- [x] Rate Limiting
-- [ ] Custom Extensions
+- [ ] API Extensions (hooks/endpoints)
 
 <br>
 

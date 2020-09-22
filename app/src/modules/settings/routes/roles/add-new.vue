@@ -7,7 +7,12 @@
 			<v-card-text>
 				<div class="form-grid">
 					<div class="field full">
-						<v-input v-model="roleName" autofocus @keyup.enter="save" :placeholder="$t('role_name') + '...'" />
+						<v-input
+							v-model="roleName"
+							autofocus
+							@keyup.enter="save"
+							:placeholder="$t('role_name') + '...'"
+						/>
 					</div>
 
 					<div class="field half">
@@ -16,8 +21,8 @@
 					</div>
 
 					<div class="field half">
-						<p class="type-label">{{ $t('fields.directus_roles.admin') }}</p>
-						<v-checkbox block v-model="admin" :label="$t('enabled')" />
+						<p class="type-label">{{ $t('fields.directus_roles.admin_access') }}</p>
+						<v-checkbox block v-model="adminAccess" :label="$t('enabled')" />
 					</div>
 				</div>
 			</v-card-text>
@@ -33,17 +38,17 @@
 import { defineComponent, ref } from '@vue/composition-api';
 import api from '@/api';
 import router from '@/router';
-import { permissions } from './app-required-permissions'
+import { permissions } from './app-required-permissions';
 
 export default defineComponent({
 	setup() {
 		const roleName = ref<string>();
 		const appAccess = ref(true);
-		const admin = ref(false);
+		const adminAccess = ref(false);
 
 		const { saving, error, save } = useSave();
 
-		return { roleName, saving, error, save, appAccess, admin };
+		return { roleName, saving, error, save, appAccess, adminAccess };
 
 		function useSave() {
 			const saving = ref(false);
@@ -56,13 +61,20 @@ export default defineComponent({
 				error.value = null;
 
 				try {
-					const roleResponse = await api.post('/roles', { name: roleName.value, admin: admin.value, app_access: appAccess.value });
+					const roleResponse = await api.post('/roles', {
+						name: roleName.value,
+						admin_access: adminAccess.value,
+						app_access: appAccess.value,
+					});
 
-					if (appAccess.value === true && admin.value === false) {
-						await api.post('/permissions', permissions.map(permission => ({
-							...permission,
-							role: roleResponse.data.data.id,
-						})));
+					if (appAccess.value === true && adminAccess.value === false) {
+						await api.post(
+							'/permissions',
+							permissions.map((permission) => ({
+								...permission,
+								role: roleResponse.data.data.id,
+							}))
+						);
 					}
 
 					router.push(`/settings/roles/${roleResponse.data.data.id}`);
@@ -73,7 +85,7 @@ export default defineComponent({
 				}
 			}
 		}
-	}
+	},
 });
 </script>
 

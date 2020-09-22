@@ -2,16 +2,30 @@ import express from 'express';
 import asyncHandler from 'express-async-handler';
 import RolesService from '../services/roles';
 import MetaService from '../services/meta';
+import { ForbiddenException } from '../exceptions';
+import useCollection from '../middleware/use-collection';
 
 const router = express.Router();
+
+router.use(useCollection('directus_roles'));
 
 router.post(
 	'/',
 	asyncHandler(async (req, res, next) => {
 		const service = new RolesService({ accountability: req.accountability });
 		const primaryKey = await service.create(req.body);
-		const item = await service.readByKey(primaryKey, req.sanitizedQuery);
-		res.locals.payload = { data: item || null };
+
+		try {
+			const item = await service.readByKey(primaryKey, req.sanitizedQuery);
+			res.locals.payload = { data: item || null };
+		} catch (error) {
+			if (error instanceof ForbiddenException) {
+				return next();
+			}
+
+			throw error;
+		}
+
 		return next();
 	})
 );
@@ -47,8 +61,18 @@ router.patch(
 		const service = new RolesService({ accountability: req.accountability });
 		const pk = req.params.pk.includes(',') ? req.params.pk.split(',') : req.params.pk;
 		const primaryKey = await service.update(req.body, pk as any);
-		const item = await service.readByKey(primaryKey, req.sanitizedQuery);
-		res.locals.payload = { data: item || null };
+
+		try {
+			const item = await service.readByKey(primaryKey, req.sanitizedQuery);
+			res.locals.payload = { data: item || null };
+		} catch (error) {
+			if (error instanceof ForbiddenException) {
+				return next();
+			}
+
+			throw error;
+		}
+
 		return next();
 	})
 );
