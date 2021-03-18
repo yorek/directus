@@ -33,13 +33,13 @@
 
 <script lang="ts">
 import { defineComponent, PropType, computed, ref, provide } from '@vue/composition-api';
-import { useFieldsStore } from '../../stores/';
-import { Field, FilterOperator } from '../../types';
-import { useElementSize } from '../../composables/use-element-size';
+import { useFieldsStore } from '@/stores/';
+import { Field } from '@/types';
+import { useElementSize } from '@/composables/use-element-size';
 import { clone, cloneDeep } from 'lodash';
 import marked from 'marked';
 import FormField from './form-field.vue';
-import useFormFields from '../../composables/use-form-fields';
+import useFormFields from '@/composables/use-form-fields';
 import { ValidationError } from './types';
 
 type FieldValues = {
@@ -91,7 +91,7 @@ export default defineComponent({
 		},
 	},
 	setup(props, { emit }) {
-		const el = ref<Element | null>(null);
+		const el = ref<Element>();
 		const fieldsStore = useFieldsStore();
 
 		const values = computed(() => {
@@ -209,6 +209,7 @@ export default defineComponent({
 					unsetValue(field);
 				} else {
 					batchActiveFields.value = [...batchActiveFields.value, field.field];
+					setValue(field, field.schema?.default_value);
 				}
 			}
 		}
@@ -216,18 +217,8 @@ export default defineComponent({
 });
 </script>
 
-<style>
-body {
-	--v-form-column-width: var(--form-column-width);
-	--v-form-column-max-width: var(--form-column-max-width);
-	--v-form-row-max-height: calc(var(--v-form-column-width) * 2);
-	--v-form-horizontal-gap: var(--form-horizontal-gap);
-	--v-form-vertical-gap: var(--form-vertical-gap);
-}
-</style>
-
 <style lang="scss" scoped>
-@import '../../styles/mixins/form-grid';
+@import '@/styles/mixins/form-grid';
 
 .v-form {
 	@include form-grid;

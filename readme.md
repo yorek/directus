@@ -62,6 +62,16 @@ An empty [Directus project](https://github.com/platformsh-templates/directus) re
 </a>
 </p>
 
+## :rocket: Deploy on Heroku
+
+You can quickly deploy a project on Heroku using our community maintained template.
+
+<p align="center">
+    <a href="https://heroku.com/deploy?template=https://github.com/directus-community/heroku-template">
+        <img src="https://www.herokucdn.com/deploy/button.svg" alt="Deploy">
+    </a>
+</p>
+
 ## 📌 Requirements
 
 Directus only requires Node.js and supports most operating systems and SQL database vendors.
@@ -107,9 +117,11 @@ channels:
 
 Please read our [Contributing Guide](./contributing.md) before submitting Pull Requests.
 
+All security vulnerabilities should be reported in accordance with our [Security Policy](https://docs.directus.io/contributing/introduction/#reporting-security-vulnerabilities).
+
 Directus is a premium open-source ([GPLv3](./license)) project, made possible with support from our passionate core
 team, talented contributors, and amazing [GitHub Sponsors](https://github.com/sponsors/directus). Thank you all!
 
 <br>
 
-© 2006-2020, Monospace Inc
+© 2004-2021, Monospace Inc

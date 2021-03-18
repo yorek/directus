@@ -22,19 +22,14 @@
 					:saving="creatingBookmark"
 				>
 					<template #activator="{ on }">
-						<v-icon class="toggle" name="bookmark_outline" @click="on" />
+						<v-icon class="toggle" @click="on" name="bookmark_outline" v-tooltip.right="$t('create_bookmark')" />
 					</template>
 				</bookmark-add>
 
 				<v-icon class="saved" name="bookmark" v-else-if="bookmarkSaved" />
 
 				<template v-else-if="bookmarkIsMine">
-					<v-icon
-						class="save"
-						@click="savePreset()"
-						name="bookmark_save"
-						v-tooltip.bottom="$t('update_bookmark')"
-					/>
+					<v-icon class="save" @click="savePreset()" name="bookmark_save" v-tooltip.bottom="$t('update_bookmark')" />
 				</template>
 
 				<bookmark-add
@@ -104,9 +99,9 @@
 						:disabled="batchArchiveAllowed !== true"
 						rounded
 						icon
-						class="action-soft-delete"
+						class="action-archive"
 						@click="on"
-						v-tooltip.bottom="batchEditAllowed ? $t('archive') : $t('not_allowed')"
+						v-tooltip.bottom="batchArchiveAllowed ? $t('archive') : $t('not_allowed')"
 					>
 						<v-icon name="archive" outline />
 					</v-button>
@@ -119,7 +114,7 @@
 						<v-button @click="confirmArchive = false" secondary>
 							{{ $t('cancel') }}
 						</v-button>
-						<v-button @click="batchDelete" class="action-soft-delete" :loading="archiving">
+						<v-button @click="archive" class="action-archive" :loading="archiving">
 							{{ $t('archive') }}
 						</v-button>
 					</v-card-actions>
@@ -225,11 +220,7 @@
 			</sidebar-detail>
 			<layout-sidebar-detail @input="layout = $event" :value="layout" />
 			<portal-target name="sidebar" />
-			<export-sidebar-detail
-				:layout-query="layoutQuery"
-				:search-query="searchQuery"
-				:collection="currentCollection"
-			/>
+			<export-sidebar-detail :layout-query="layoutQuery" :search-query="searchQuery" :collection="currentCollection" />
 		</template>
 
 		<v-dialog v-if="deleteError" active>
@@ -249,21 +240,21 @@
 <script lang="ts">
 import { defineComponent, computed, ref, watch, toRefs } from '@vue/composition-api';
 import CollectionsNavigation from '../components/navigation.vue';
-import api from '../../../api';
-import { LayoutComponent } from '../../../layouts/types';
+import api from '@/api';
+import { LayoutComponent } from '@/layouts/types';
 import CollectionsNotFound from './not-found.vue';
-import useCollection from '../../../composables/use-collection';
-import usePreset from '../../../composables/use-preset';
-import LayoutSidebarDetail from '../../../views/private/components/layout-sidebar-detail';
-import ExportSidebarDetail from '../../../views/private/components/export-sidebar-detail';
-import SearchInput from '../../../views/private/components/search-input';
-import BookmarkAdd from '../../../views/private/components/bookmark-add';
-import BookmarkEdit from '../../../views/private/components/bookmark-edit';
-import router from '../../../router';
+import useCollection from '@/composables/use-collection';
+import usePreset from '@/composables/use-preset';
+import LayoutSidebarDetail from '@/views/private/components/layout-sidebar-detail';
+import ExportSidebarDetail from '@/views/private/components/export-sidebar-detail';
+import SearchInput from '@/views/private/components/search-input';
+import BookmarkAdd from '@/views/private/components/bookmark-add';
+import BookmarkEdit from '@/views/private/components/bookmark-edit';
+import router from '@/router';
 import marked from 'marked';
-import { usePermissionsStore, useUserStore } from '../../../stores';
-import DrawerBatch from '../../../views/private/components/drawer-batch';
-import { unexpectedError } from '../../../utils/unexpected-error';
+import { usePermissionsStore, useUserStore } from '@/stores';
+import DrawerBatch from '@/views/private/components/drawer-batch';
+import { unexpectedError } from '@/utils/unexpected-error';
 
 type Item = {
 	[field: string]: any;
@@ -332,13 +323,7 @@ export default defineComponent({
 			batchEditActive,
 		} = useBatch();
 
-		const {
-			bookmarkDialogActive,
-			creatingBookmark,
-			createBookmark,
-			editingBookmark,
-			editBookmark,
-		} = useBookmarks();
+		const { bookmarkDialogActive, creatingBookmark, createBookmark, editingBookmark, editBookmark } = useBookmarks();
 
 		watch(
 			collection,
@@ -585,23 +570,23 @@ export default defineComponent({
 
 <style lang="scss" scoped>
 .action-delete {
-	--v-button-background-color: var(--danger-25);
+	--v-button-background-color: var(--danger-10);
 	--v-button-color: var(--danger);
-	--v-button-background-color-hover: var(--danger-50);
+	--v-button-background-color-hover: var(--danger-25);
 	--v-button-color-hover: var(--danger);
 }
 
-.action-soft-delete {
-	--v-button-background-color: var(--warning-25);
+.action-archive {
+	--v-button-background-color: var(--warning-10);
 	--v-button-color: var(--warning);
-	--v-button-background-color-hover: var(--warning-50);
+	--v-button-background-color-hover: var(--warning-25);
 	--v-button-color-hover: var(--warning);
 }
 
 .action-batch {
-	--v-button-background-color: var(--warning-25);
+	--v-button-background-color: var(--warning-10);
 	--v-button-color: var(--warning);
-	--v-button-background-color-hover: var(--warning-50);
+	--v-button-background-color-hover: var(--warning-25);
 	--v-button-color-hover: var(--warning);
 }
 

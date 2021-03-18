@@ -1,18 +1,24 @@
 import express from 'express';
-import asyncHandler from 'express-async-handler';
+import asyncHandler from '../utils/async-handler';
 import Busboy from 'busboy';
 import { MetaService, FilesService } from '../services';
 import { File, PrimaryKey } from '../types';
 import formatTitle from '@directus/format-title';
 import env from '../env';
-import axios from 'axios';
+import axios, { AxiosResponse } from 'axios';
 import Joi from 'joi';
-import { InvalidPayloadException, ForbiddenException } from '../exceptions';
+import {
+	InvalidPayloadException,
+	ForbiddenException,
+	FailedValidationException,
+	ServiceUnavailableException,
+} from '../exceptions';
 import url from 'url';
 import path from 'path';
 import useCollection from '../middleware/use-collection';
 import { respond } from '../middleware/respond';
 import { toArray } from '../utils/to-array';
+import logger from '../logger';
 
 const router = express.Router();
 
@@ -107,7 +113,6 @@ router.post(
 		if (req.is('multipart/form-data')) {
 			keys = res.locals.savedFiles;
 		} else {
-			// @TODO is this ever used in real life? Wouldn't you always upload a file on create?
 			keys = await service.create(req.body);
 		}
 
@@ -149,9 +154,27 @@ router.post(
 			schema: req.schema,
 		});
 
-		const fileResponse = await axios.get<NodeJS.ReadableStream>(req.body.url, {
-			responseType: 'stream',
-		});
+		const fileCreatePermissions = req.schema.permissions.find(
+			(permission) => permission.collection === 'directus_files' && permission.action === 'create'
+		);
+
+		if (req.accountability?.admin !== true && !fileCreatePermissions) {
+			throw new ForbiddenException();
+		}
+
+		let fileResponse: AxiosResponse<NodeJS.ReadableStream>;
+
+		try {
+			fileResponse = await axios.get<NodeJS.ReadableStream>(req.body.url, {
+				responseType: 'stream',
+			});
+		} catch (err) {
+			logger.warn(`Couldn't fetch file from url "${req.body.url}"`);
+			logger.warn(err);
+			throw new ServiceUnavailableException(`Couldn't fetch file from url "${req.body.url}"`, {
+				service: 'external-file',
+			});
+		}
 
 		const parsedURL = url.parse(fileResponse.request.res.responseUrl);
 		const filename = path.basename(parsedURL.pathname as string);
@@ -206,13 +229,67 @@ router.get(
 router.get(
 	'/:pk',
 	asyncHandler(async (req, res, next) => {
-		const keys = req.params.pk.includes(',') ? req.params.pk.split(',') : req.params.pk;
 		const service = new FilesService({
 			accountability: req.accountability,
 			schema: req.schema,
 		});
-		const record = await service.readByKey(keys as any, req.sanitizedQuery);
+
+		const record = await service.readByKey(req.params.pk, req.sanitizedQuery);
 		res.locals.payload = { data: record || null };
+		return next();
+	}),
+	respond
+);
+
+router.patch(
+	'/',
+	asyncHandler(async (req, res, next) => {
+		const service = new FilesService({
+			accountability: req.accountability,
+			schema: req.schema,
+		});
+
+		if (Array.isArray(req.body)) {
+			const primaryKeys = await service.update(req.body);
+
+			try {
+				const result = await service.readByKey(primaryKeys, req.sanitizedQuery);
+				res.locals.payload = { data: result || null };
+			} catch (error) {
+				if (error instanceof ForbiddenException) {
+					return next();
+				}
+
+				throw error;
+			}
+
+			return next();
+		}
+
+		const updateSchema = Joi.object({
+			keys: Joi.array().items(Joi.alternatives(Joi.string(), Joi.number())).required(),
+			data: Joi.object().required().unknown(),
+		});
+
+		const { error } = updateSchema.validate(req.body);
+
+		if (error) {
+			throw new FailedValidationException(error.details[0]);
+		}
+
+		const primaryKeys = await service.update(req.body.data, req.body.keys);
+
+		try {
+			const result = await service.readByKey(primaryKeys, req.sanitizedQuery);
+			res.locals.payload = { data: result || null };
+		} catch (error) {
+			if (error instanceof ForbiddenException) {
+				return next();
+			}
+
+			throw error;
+		}
+
 		return next();
 	}),
 	respond
@@ -231,8 +308,7 @@ router.patch(
 		if (req.is('multipart/form-data')) {
 			keys = res.locals.savedFiles;
 		} else {
-			keys = req.params.pk.includes(',') ? req.params.pk.split(',') : req.params.pk;
-			await service.update(req.body, keys as any);
+			await service.update(req.body, req.params.pk);
 		}
 
 		try {
@@ -271,12 +347,13 @@ router.delete(
 router.delete(
 	'/:pk',
 	asyncHandler(async (req, res, next) => {
-		const keys = req.params.pk.includes(',') ? req.params.pk.split(',') : req.params.pk;
 		const service = new FilesService({
 			accountability: req.accountability,
 			schema: req.schema,
 		});
-		await service.delete(keys as any);
+
+		await service.delete(req.params.pk);
+
 		return next();
 	}),
 	respond

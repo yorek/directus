@@ -7,20 +7,18 @@ import argon2 from 'argon2';
 import { v4 as uuidv4 } from 'uuid';
 import database from '../database';
 import { clone, isObject, cloneDeep } from 'lodash';
-import { Relation, Item, AbstractServiceOptions, Accountability, PrimaryKey, SchemaOverview } from '../types';
+import { Item, AbstractServiceOptions, Accountability, PrimaryKey, SchemaOverview } from '../types';
 import { ItemsService } from './items';
-import { URL } from 'url';
-import Knex from 'knex';
-import env from '../env';
+import { Knex } from 'knex';
 import getLocalType from '../utils/get-local-type';
 import { format, formatISO } from 'date-fns';
 import { ForbiddenException } from '../exceptions';
 import { toArray } from '../utils/to-array';
-import { FieldMeta } from '../types';
 import { systemFieldRows } from '../database/system-data/fields';
 import { systemRelationRows } from '../database/system-data/relations';
 import { InvalidPayloadException } from '../exceptions';
 import { isPlainObject } from 'lodash';
+import Joi from 'joi';
 
 type Action = 'create' | 'read' | 'update';
 
@@ -31,6 +29,16 @@ type Transformers = {
 		payload: Partial<Item>;
 		accountability: Accountability | null;
 	}) => Promise<any>;
+};
+
+type Alterations = {
+	create: {
+		[key: string]: any;
+	}[];
+	update: {
+		[key: string]: any;
+	}[];
+	delete: (Number | String)[];
 };
 
 export class PayloadService {
@@ -71,19 +79,6 @@ export class PayloadService {
 			}
 
 			return value;
-		},
-		async 'file-links'({ action, value, payload }) {
-			if (action === 'read' && payload && payload.storage && payload.filename_disk) {
-				const publicKey = `STORAGE_${payload.storage.toUpperCase()}_PUBLIC_URL`;
-
-				return {
-					asset_url: new URL(`/assets/${payload.id}`, env.PUBLIC_URL),
-					public_url: new URL(payload.filename_disk, env[publicKey]),
-				};
-			}
-
-			// This is an non-existing column, so there isn't any data to save
-			return undefined;
 		},
 		async boolean({ action, value }) {
 			if (action === 'read') {
@@ -154,13 +149,20 @@ export class PayloadService {
 
 		const fieldsInPayload = Object.keys(processedPayload[0]);
 
-		let specialFieldsInCollection: FieldMeta[] = await this.knex
-			.select('field', 'special')
-			.from('directus_fields')
-			.where({ collection: this.collection })
-			.whereNotNull('special');
+		let specialFieldsInCollection = this.schema.fields.filter(
+			(field) => field.collection === this.collection && field.special && field.special.length > 0
+		);
 
-		specialFieldsInCollection.push(...systemFieldRows.filter((fieldMeta) => fieldMeta.collection === this.collection));
+		specialFieldsInCollection.push(
+			...systemFieldRows
+				.filter((fieldMeta) => fieldMeta.collection === this.collection)
+				.map((fieldMeta) => ({
+					id: fieldMeta.id,
+					collection: fieldMeta.collection,
+					field: fieldMeta.field,
+					special: fieldMeta.special ?? [],
+				}))
+		);
 
 		if (action === 'read') {
 			specialFieldsInCollection = specialFieldsInCollection.filter((fieldMeta) => {
@@ -200,7 +202,12 @@ export class PayloadService {
 		return processedPayload[0];
 	}
 
-	async processField(field: FieldMeta, payload: Partial<Item>, action: Action, accountability: Accountability | null) {
+	async processField(
+		field: SchemaOverview['fields'][number],
+		payload: Partial<Item>,
+		action: Action,
+		accountability: Accountability | null
+	) {
 		if (!field.special) return payload[field.field];
 		const fieldSpecials = field.special ? toArray(field.special) : [];
 
@@ -225,7 +232,7 @@ export class PayloadService {
 	 * shouldn't return with time / timezone info respectively
 	 */
 	async processDates(payloads: Partial<Record<string, any>>[]) {
-		const columnsInCollection = Object.values(this.schema[this.collection].columns);
+		const columnsInCollection = Object.values(this.schema.tables[this.collection].columns);
 
 		const columnsWithType = columnsInCollection.map((column) => ({
 			name: column.column_name,
@@ -278,10 +285,9 @@ export class PayloadService {
 	processA2O(payloads: Partial<Item>): Promise<Partial<Item>>;
 	async processA2O(payload: Partial<Item> | Partial<Item>[]): Promise<Partial<Item> | Partial<Item>[]> {
 		const relations = [
-			...(await this.knex
-				.select<Relation[]>('*')
-				.from('directus_relations')
-				.where({ many_collection: this.collection })),
+			...this.schema.relations.filter((relation) => {
+				return relation.many_collection === this.collection;
+			}),
 			...systemRelationRows.filter((systemRelation) => systemRelation.many_collection === this.collection),
 		];
 
@@ -322,7 +328,7 @@ export class PayloadService {
 					schema: this.schema,
 				});
 
-				const relatedPrimary = this.schema[relatedCollection].primary;
+				const relatedPrimary = this.schema.tables[relatedCollection].primary;
 				const relatedRecord: Partial<Item> = payload[relation.many_field];
 				const hasPrimaryKey = relatedRecord.hasOwnProperty(relatedPrimary);
 
@@ -350,10 +356,9 @@ export class PayloadService {
 	processM2O(payloads: Partial<Item>): Promise<Partial<Item>>;
 	async processM2O(payload: Partial<Item> | Partial<Item>[]): Promise<Partial<Item> | Partial<Item>[]> {
 		const relations = [
-			...(await this.knex
-				.select<Relation[]>('*')
-				.from('directus_relations')
-				.where({ many_collection: this.collection })),
+			...this.schema.relations.filter((relation) => {
+				return relation.many_collection === this.collection;
+			}),
 			...systemRelationRows.filter((systemRelation) => systemRelation.many_collection === this.collection),
 		];
 
@@ -403,11 +408,16 @@ export class PayloadService {
 	 * Recursively save/update all nested related o2m items
 	 */
 	async processO2M(payload: Partial<Item> | Partial<Item>[], parent?: PrimaryKey) {
+		const nestedUpdateSchema = Joi.object({
+			create: Joi.array().items(Joi.object().unknown()),
+			update: Joi.array().items(Joi.object().unknown()),
+			delete: Joi.array().items(Joi.string(), Joi.number()),
+		});
+
 		const relations = [
-			...(await this.knex
-				.select<Relation[]>('*')
-				.from('directus_relations')
-				.where({ one_collection: this.collection })),
+			...this.schema.relations.filter((relation) => {
+				return relation.one_collection === this.collection;
+			}),
 			...systemRelationRows.filter((systemRelation) => systemRelation.one_collection === this.collection),
 		];
 
@@ -424,6 +434,8 @@ export class PayloadService {
 			});
 
 			for (const relation of relationsToProcess) {
+				if (!payload[relation.one_field!]) continue;
+
 				const itemsService = new ItemsService(relation.many_collection, {
 					accountability: this.accountability,
 					knex: this.knex,
@@ -431,9 +443,8 @@ export class PayloadService {
 				});
 
 				const relatedRecords: Partial<Item>[] = [];
-				let savedPrimaryKeys: PrimaryKey[] = [];
 
-				if (payload[relation.one_field!] && Array.isArray(payload[relation.one_field!])) {
+				if (Array.isArray(payload[relation.one_field!])) {
 					for (const relatedRecord of payload[relation.one_field!] || []) {
 						let record = cloneDeep(relatedRecord);
 
@@ -462,28 +473,72 @@ export class PayloadService {
 						});
 					}
 
-					savedPrimaryKeys = await itemsService.upsert(relatedRecords);
-				}
+					const savedPrimaryKeys = await itemsService.upsert(relatedRecords);
 
-				await itemsService.updateByQuery(
-					{ [relation.many_field]: null },
-					{
-						filter: {
-							_and: [
-								{
-									[relation.many_field]: {
-										_eq: parent,
+					await itemsService.updateByQuery(
+						{ [relation.many_field]: null },
+						{
+							filter: {
+								_and: [
+									{
+										[relation.many_field]: {
+											_eq: parent,
+										},
 									},
-								},
-								{
-									[relation.many_primary]: {
-										_nin: savedPrimaryKeys,
+									{
+										[relation.many_primary]: {
+											_nin: savedPrimaryKeys,
+										},
 									},
-								},
-							],
-						},
+								],
+							},
+						}
+					);
+				} else {
+					const alterations = payload[relation.one_field!] as Alterations;
+					const { error } = nestedUpdateSchema.validate(alterations);
+					if (error) throw new InvalidPayloadException(`Invalid one-to-many update structure: ${error.message}`);
+
+					if (alterations.create) {
+						await itemsService.create(
+							alterations.create.map((item) => ({
+								...item,
+								[relation.many_field]: parent || payload[relation.one_primary!],
+							}))
+						);
 					}
-				);
+
+					if (alterations.update) {
+						await itemsService.update(
+							alterations.update.map((item) => ({
+								...item,
+								[relation.many_field]: parent || payload[relation.one_primary!],
+							}))
+						);
+					}
+
+					if (alterations.delete) {
+						await itemsService.updateByQuery(
+							{ [relation.many_field]: null },
+							{
+								filter: {
+									_and: [
+										{
+											[relation.many_field]: {
+												_eq: parent,
+											},
+										},
+										{
+											[relation.many_primary]: {
+												_in: alterations.delete,
+											},
+										},
+									],
+								},
+							}
+						);
+					}
+				}
 			}
 		}
 	}

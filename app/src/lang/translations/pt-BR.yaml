@@ -5,12 +5,14 @@ duplicate_field: Campo duplicado
 half_width: Meia largura
 full_width: Largura total
 fill_width: Preencher
+field_name_translations: Traduções Dos Nomes Dos Campos
 enter_password_to_enable_tfa: Digite sua senha para ativar a Autenticação em Duas Etapas
 add_field: Adicionar Campo
 role_name: Nome do cargo
 db_only_click_to_configure: 'Apenas o banco de dados: clique para configurar'
 show_archived_items: Mostrar itens arquivados
 required: Obrigatório
+required_for_app_access: Obrigatório para o Acesso ao Aplicativo
 requires_value: Requer valor
 create_preset: Criar predefinição
 create_role: Criar Função
@@ -24,8 +26,11 @@ connection_excellent: Conexão excelente
 connection_good: Conexão boa
 connection_fair: Conexão razoável
 connection_poor: Conexão ruim
+primary: Primário
 rename_folder: Renomear Pasta
 delete_folder: Excluir Pasta
+prefix: Prefixo
+suffix: Sufixo
 reset_bookmark: Redefinir marcadores
 rename_bookmark: Renomear marcador
 update_bookmark: Atualizar Marcador
@@ -49,8 +54,11 @@ archive: Arquivar
 archive_confirm: Tem certeza de que deseja arquivar este item?
 archive_confirm_count: >-
   Nenhum Item Selecionado | Tem certeza que deseja arquivar este item? | Você tem certeza que deseja arquivar estes {count} itens?
-reset_system_permissions: Redefinir permissões do sistema
-reset_system_permissions_copy: Redefinir todas as permissões do sistema para os padrões
+reset_system_permissions_to: 'Redefinir permissões do sistema para:'
+reset_system_permissions_copy: Esta ação irá sobrescrever quaisquer permissões personalizadas que você pode ter aplicado às coleções do sistema. Tem certeza?
+the_following_are_minimum_permissions: As seguintes são as permissões mínimas necessárias quando o "Acesso ao Aplicativo" estiver ativado. Você pode estender as permissões além disto, mas não abaixo.
+app_access_minimum: Acesso ao App Mínimo
+recommended_defaults: Padrões Recomendados
 unarchive: Desarquivar
 unarchive_confirm: Tem certeza de que deseja desarquivar este item?
 nested_files_folders_will_be_moved: Arquivos e pastas aninhadas serão movidos a um nível acima.
@@ -71,15 +79,27 @@ validationError:
   null: Valor precisa ser nulo
   nnull: Valor não pode ser nulo
   required: Valor obrigatório
+  unique: O valor deve ser único
 all_access: Acesso Total
 no_access: Sem acesso
 use_custom: Usar Personalizado
+field_standard: Padrão
+field_presentation: Apresentação e pseudônimos
+field_file: Arquivo único
+field_files: Múltiplos arquivos
+field_m2o: Relacionamento M2O
+field_m2a: Relacionamento M2A
+field_o2m: Relacionamento O2M
+field_m2m: Relacionamento M2M
+field_translations: Traduções
 item_permissions: Permissões do Item
 field_permissions: Permissões dos campos
 field_validation: Validação dos campos
 field_presets: Predefinições de campo
 permissions_for_role: 'Itens que o cargo {role} pode {action}.'
 fields_for_role: 'Campos que o cargo {role} pode {action}.'
+validation_for_role: 'As regras {action} do campo que o papel {role} deve obedecer.'
+presets_for_role: 'Valores de campo padrões para a função {role}.'
 presentation_and_aliases: Apresentação e pseudônimos
 revision_post_update: Aqui está como este item ficou após a atualização...
 changes_made: Estas são as mudanças específicas que foram feitas...
@@ -99,11 +119,9 @@ exposure: Exposição
 shutter: Obturador
 iso: ISO
 focal_length: Distância focal
-schema_setup_title: Como este campo deve ser salvo no banco de dados?
-schema_field_title: Como este campo deve se comportar no aplicativo?
+schema_setup_key: O nome da coluna do banco de dados deste campo e a chave API
 create_field: Criar Campo
 creating_new_field: 'Novo campo ({collection})'
-updating_field_field: '{field} ({collection})'
 reset_page_preferences: Redefinir preferências da página
 hidden_field: Campo oculto
 hidden_on_detail: Oculto em Detalhe
@@ -123,18 +141,18 @@ text: Texto
 time: Hora
 timestamp: Timestamp
 uuid: UUID
+hash: Hash
 not_available_for_type: Não disponível para este tipo
 create_translations: Criar Traduções
 auto_generate: Gerar automaticamente
 this_will_auto_setup_fields_relations: Isto irá automaticamente configurar todos os campos e relações obrigatórias.
 click_here: Clique aqui
+to_manually_setup_translations: to manually setup translations.
 click_to_manage_translated_fields: >-
   Ainda não há campos traduzidos. Clique aqui para criá-los. | Há um campo traduzido. Clique aqui para gerenciá-lo. | Há {count} campos traduzidos. Clique aqui para gerenciá-los.
 fields_group: Grupo de Campos
-configure_m2o: Configure seu relacionamento Muitos-para-Um...
-configure_o2m: Configure seu relacionamento Um-para-Muitos...
-configure_m2m: Configure seu relacionamento Muitos-para-Muitos...
-configure_m2a: Configure seu relacionamento Muitos-para-Qualquer...
+new_data_alert: 'O seguinte será criado em seu modelo de dados:'
+new_field: 'Novo campo'
 add_m2o_to_collection: 'Adicionar Muitos-para-Um a "{collection}"'
 add_o2m_to_collection: 'Adicionar Um-para-Muitos a "{collection}"'
 add_m2m_to_collection: 'Adicionar Muitos-para-Muitos a "{collection}"'
@@ -142,9 +160,6 @@ choose_a_type: Escolha um tipo...
 determined_by_relationship: Determinado por Relacionamento
 add_note: Crie uma nota de ajuda para os usuários...
 default_value: Valor padrão
-add_a_default_value: Adicionar um valor padrão...
-interface_setup_title: Como os usuários interagirão com este campo?
-display_setup_title: Como o valor deste campo deve ser exibido?
 standard_field: Campo Padrão
 single_file: Arquivo único
 multiple_files: Múltiplos arquivos
@@ -326,6 +341,7 @@ collection_created: Coleção criada
 modified_on: Modificado em
 card_size: Tamanho do cartão
 sort_field: Campo de ordenação
+status: Status
 toggle_manual_sorting: Alternar ordenação manual
 bookmark_doesnt_exist: Marcador não existe
 bookmark_doesnt_exist_copy: O marcador que você está tentando abrir não pôde ser encontrado.
@@ -476,10 +492,10 @@ wysiwyg_options:
   italic: Itálico
   underline: Sublinhado
   strikethrough: Tachado
+  codeblock: Código
   blockquote: Bloco de citação
   bullist: Lista de itens
   numlist: Lista numerada
-  link: Adicionar Link
   unlink: Excluir Link
   media: Adicionar mídia
   image: Adicionar Imagem
@@ -547,13 +563,13 @@ page_help_files_collection: >-
   **Biblioteca de Arquivos** - Lista todos os arquivos enviados para este projeto. Personalize o layout, os filtros e a ordenação para personalizar a sua vista e até mesmo salve marcadores dessas diferentes configurações para acesso rápido.
 page_help_files_item: >-
   **Detalhe do Arquivo** — Um formulário para gerenciar os metadados do arquivo, editar o asset original e atualizar as configurações de acesso.
-page_help_settings_project: '**Configurações do projeto** — Opções de configuração globais do seu projeto.'
+page_help_settings_project: "**Configurações do projeto** — Opções de configuração globais do seu projeto."
 page_help_settings_datamodel_collections: >-
   **Modelo de Dados: Coleções** — Lista todas as coleções disponíveis. Isso inclui coleções visíveis, escondidas e do sistema, bem como tabelas de banco de dados não gerenciadas que podem ser adicionadas.
 page_help_settings_datamodel_fields: >-
   **Modelo de Dados: Coleção** — Um formulário para gerenciar esta coleção e seus campos.
 page_help_settings_roles_collection: '**Navegando em cargos** - Lista os cargos de administrador, público e também personalizados.'
-page_help_settings_roles_item: '**Detalhes do cargo** — Gerencie as permissões de um cargo e outras configurações.'
+page_help_settings_roles_item: "**Detalhes do cargo** — Gerencie as permissões de um cargo e outras configurações."
 page_help_settings_presets_collection: >-
   **Navegando em predefinições** — Lista todas as predefinições no projeto, incluindo: usuário, cargo e marcadores globais, bem como visualizações padrão.
 page_help_settings_presets_item: >-
@@ -565,7 +581,6 @@ page_help_users_item: >-
   **Detalhe do Usuário** — Gerencie as informações da sua conta, ou veja os detalhes de outros usuários.
 activity_feed: Feed de atividade
 add_new: Adicionar Novo
-from_collection: 'Da coleção “{collection}”'
 create_new: Criar novo
 all: Tudo
 batch_delete_confirm: >-
@@ -578,47 +593,58 @@ singleton_label: Tratar como objeto único
 system_fields_locked: Os campos do sistema estão bloqueados e não podem ser editados
 fields:
   directus_activity:
+    item: Chave Primária do Item
     action: Ação
     collection: Coleção
-    item: Chave Primária do Item
-    user: Ação Por
     timestamp: Ação Em
-    edited_on: Editado Em
-    comment_deleted_on: Comentário Excluído Em
-    ip: Endereço de IP
-    user_agent: Agente de Usuário
+    user: Ação Por
     comment: Comentário
+    user_agent: Agente de Usuário
+    ip: Endereço de IP
+    revisions: Revisões
+  directus_collections:
+    collection: Coleção
+    icon: Ícone
+    note: Nota
+    display_template: Modelo de exibição
+    hidden: Oculto
+    singleton: Singleton
+    sort_field: Campo de ordenação
   directus_files:
     title: Título
+    description: Descrição
     tags: Tags
     location: Local
-    description: Descrição
-    filename_download: Download de Nome do Arquivo
-    filename_disk: Disco de Nome do Arquivo
-    private_hash: Hash Privado
-    checksum: Checksum
-    uploaded_on: Enviado Em
-    uploaded_by: Enviado Por
-    width: Largura
-    height: Altura
-    duration: Duração
-    filesize: Tamanho do Arquivo
     metadata: Metadados
+    filesize: Tamanho do Arquivo
+    modified_on: Modificado em
+    created_on: Criado em
+    created_by: Criado por
+    embed: Incorporar
+    uploaded_by: Enviado Por
+    folder: Pasta
+    width: Largura
+    uploaded_on: Enviado Em
+    height: Altura
+    charset: Codificação de caracteres
+    duration: Duração
   directus_users:
-    status: Status
     first_name: Primeiro Nome
     last_name: Sobrenome
     email: E-mail
-    email_notifications: Notificações por E-mail
     password: Senha
-    role: Função
-    company: Empresa
-    title: Título
-    timezone: Fuso Horário
-    language: Idioma
     avatar: Imagem de Perfil
+    location: Local
+    title: Título
+    description: Descrição
+    tags: Tags
+    language: Idioma
     theme: Tema
     tfa_secret: Autenticação em Duas Etapas
+    status: Status
+    role: Função
+    last_page: Última página
+    last_access: Último acesso
   directus_settings:
     project_name: Nome do projeto
     project_url: URL do projeto
@@ -635,14 +661,15 @@ fields:
     note: Nota
     hidden: Oculto
     singleton: Singleton
+    translation: Traduções Dos Nomes Dos Campos
     display_template: Template
   directus_roles:
     name: Nome do cargo
     icon: Ícone do cargo
     description: Descrição
-    ip_access: Acesso IP
     app_access: Acesso ao app
     admin_access: Acesso de administrador
+    ip_access: Acesso IP
     enforce_tfa: Exigir 2FA
     users: Usuários no cargo
 no_fields_in_collection: 'Ainda não há campos em "{collection}"'
@@ -712,6 +739,8 @@ value: Valor
 view_project: Visualizar projeto
 report_error: Relatar erro
 interfaces:
+  button-links:
+    primary: Primário
   checkboxes:
     checkboxes: Caixas de Seleção
     description: Escolha entre várias opções através de caixas de seleção
@@ -796,9 +825,6 @@ interfaces:
   markdown:
     markdown: Markdown
     description: Inserir e pré-visualizar markdown
-    tabbed_label: Mostrar pré-visualização em guia separada
-    edit: Editar
-    preview: Pré-visualizar
   notice:
     notice: Aviso
     description: Mostrar um breve aviso

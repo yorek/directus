@@ -6,7 +6,7 @@ import { i18n } from '@/lang';
 import formatTitle from '@directus/format-title';
 import { useRelationsStore } from '@/stores/';
 import { Relation, FieldRaw, Field } from '@/types';
-import { merge } from 'lodash';
+import { merge, orderBy } from 'lodash';
 import { nanoid } from 'nanoid';
 import { unexpectedError } from '@/utils/unexpected-error';
 
@@ -27,7 +27,6 @@ const fakeFilesField: Field = {
 		display: 'file',
 		display_options: null,
 		hidden: false,
-		locked: true,
 		translations: null,
 		readonly: true,
 		width: 'full',
@@ -221,8 +220,18 @@ export const useFieldsStore = createStore({
 
 			return primaryKeyField;
 		},
-		getFieldsForCollection(collection: string) {
-			return this.state.fields.filter((field) => field.collection === collection);
+		getFieldsForCollection(collection: string): Field[] {
+			return orderBy(
+				this.state.fields.filter((field) => field.collection === collection),
+				(collection) => (collection.meta?.sort ? Number(collection.meta?.sort) : null)
+			);
+		},
+		getFieldsForCollectionAlphabetical(collection: string): Field[] {
+			return this.getFieldsForCollection(collection).sort((a: Field, b: Field) => {
+				if (a.field < b.field) return -1;
+				else if (a.field > b.field) return 1;
+				else return 1;
+			});
 		},
 		getField(collection: string, fieldKey: string) {
 			if (fieldKey.includes('.')) {
@@ -233,15 +242,16 @@ export const useFieldsStore = createStore({
 		},
 		/**
 		 * Retrieve field info for a (deeply) nested field
-		 * Recursively searches through the relationhips to find the field info that matches the
+		 * Recursively searches through the relationships to find the field info that matches the
 		 * dot notation.
 		 */
 		getRelationalField(collection: string, fields: string) {
 			const relationshipStore = useRelationsStore();
 			const parts = fields.split('.');
+
 			const relationshipForField = relationshipStore
 				.getRelationsForField(collection, parts[0])
-				?.find((relation: Relation) => relation.many_field === parts[0]);
+				?.find((relation: Relation) => relation.many_field === parts[0] || relation.one_field === parts[0]);
 
 			if (relationshipForField === undefined) return false;
 

@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import session from 'express-session';
-import asyncHandler from 'express-async-handler';
+import asyncHandler from '../utils/async-handler';
 import Joi from 'joi';
 import grant from 'grant';
 import getEmailFromProfile from '../utils/get-email-from-profile';
@@ -21,7 +21,7 @@ const loginSchema = Joi.object({
 	password: Joi.string().required(),
 	mode: Joi.string().valid('cookie', 'json'),
 	otp: Joi.string(),
-});
+}).unknown();
 
 router.post(
 	'/login',
@@ -40,19 +40,15 @@ router.post(
 		const { error } = loginSchema.validate(req.body);
 		if (error) throw new InvalidPayloadException(error.message);
 
-		const { email, password, otp } = req.body;
-
 		const mode = req.body.mode || 'json';
 
 		const ip = req.ip;
 		const userAgent = req.get('user-agent');
 
 		const { accessToken, refreshToken, expires } = await authenticationService.authenticate({
+			...req.body,
 			ip,
 			userAgent,
-			email,
-			password,
-			otp,
 		});
 
 		const payload = {
@@ -66,8 +62,9 @@ router.post(
 		if (mode === 'cookie') {
 			res.cookie('directus_refresh_token', refreshToken, {
 				httpOnly: true,
+				domain: env.REFRESH_TOKEN_COOKIE_DOMAIN,
 				maxAge: ms(env.REFRESH_TOKEN_TTL as string),
-				secure: env.REFRESH_TOKEN_COOKIE_SECURE === 'true' ? true : false,
+				secure: env.REFRESH_TOKEN_COOKIE_SECURE ?? false,
 				sameSite: (env.REFRESH_TOKEN_COOKIE_SAME_SITE as 'lax' | 'strict' | 'none') || 'strict',
 			});
 		}
@@ -99,7 +96,7 @@ router.post(
 			throw new InvalidPayloadException(`"refresh_token" is required in either the JSON payload or Cookie`);
 		}
 
-		const mode: 'json' | 'cookie' = req.body.mode || req.body.refresh_token ? 'json' : 'cookie';
+		const mode: 'json' | 'cookie' = req.body.mode || (req.body.refresh_token ? 'json' : 'cookie');
 
 		const { accessToken, refreshToken, expires } = await authenticationService.refresh(currentRefreshToken);
 
@@ -114,8 +111,9 @@ router.post(
 		if (mode === 'cookie') {
 			res.cookie('directus_refresh_token', refreshToken, {
 				httpOnly: true,
+				domain: env.REFRESH_TOKEN_COOKIE_DOMAIN,
 				maxAge: ms(env.REFRESH_TOKEN_TTL as string),
-				secure: env.REFRESH_TOKEN_COOKIE_SECURE === 'true' ? true : false,
+				secure: env.REFRESH_TOKEN_COOKIE_SECURE ?? false,
 				sameSite: (env.REFRESH_TOKEN_COOKIE_SAME_SITE as 'lax' | 'strict' | 'none') || 'strict',
 			});
 		}
@@ -170,11 +168,13 @@ router.post(
 
 		try {
 			await service.requestPasswordReset(req.body.email, req.body.reset_url || null);
-		} catch {
-			// We don't want to give away what email addresses exist, so we'll always return a 200
-			// from this endpoint
-		} finally {
 			return next();
+		} catch (err) {
+			if (err instanceof InvalidPayloadException) {
+				throw err;
+			} else {
+				return next();
+			}
 		}
 	}),
 	respond
@@ -233,8 +233,7 @@ router.get(
 		}
 
 		next();
-	}),
-	respond
+	})
 );
 
 router.use(grant.express()(grantConfig));
@@ -266,8 +265,9 @@ router.get(
 		if (redirect) {
 			res.cookie('directus_refresh_token', refreshToken, {
 				httpOnly: true,
+				domain: env.REFRESH_TOKEN_COOKIE_DOMAIN,
 				maxAge: ms(env.REFRESH_TOKEN_TTL as string),
-				secure: env.REFRESH_TOKEN_COOKIE_SECURE === 'true' ? true : false,
+				secure: env.REFRESH_TOKEN_COOKIE_SECURE ?? false,
 				sameSite: (env.REFRESH_TOKEN_COOKIE_SAME_SITE as 'lax' | 'strict' | 'none') || 'strict',
 			});
 

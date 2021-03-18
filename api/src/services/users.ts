@@ -6,7 +6,7 @@ import database from '../database';
 import argon2 from 'argon2';
 import { InvalidPayloadException, ForbiddenException, UnprocessableEntityException } from '../exceptions';
 import { Accountability, PrimaryKey, Item, AbstractServiceOptions, SchemaOverview } from '../types';
-import Knex from 'knex';
+import { Knex } from 'knex';
 import env from '../env';
 import cache from '../cache';
 import { toArray } from '../utils/to-array';
@@ -78,15 +78,22 @@ export class UsersService extends ItemsService {
 		return key;
 	}
 
-	async inviteUser(email: string | string[], role: string) {
+	async inviteUser(email: string | string[], role: string, url: string | null) {
 		const emails = toArray(email);
+
+		const urlWhitelist = toArray(env.USER_INVITE_URL_ALLOW_LIST);
+
+		if (url && urlWhitelist.includes(url) === false) {
+			throw new InvalidPayloadException(`Url "${url}" can't be used to invite users.`);
+		}
 
 		for (const email of emails) {
 			await this.service.create({ email, role, status: 'invited' });
 
 			const payload = { email, scope: 'invite' };
 			const token = jwt.sign(payload, env.SECRET as string, { expiresIn: '7d' });
-			const acceptURL = env.PUBLIC_URL + '/admin/accept-invite?token=' + token;
+			const inviteURL = url ?? env.PUBLIC_URL + '/admin/accept-invite';
+			const acceptURL = inviteURL + '?token=' + token;
 
 			await sendInviteMail(email, acceptURL);
 		}
@@ -121,6 +128,12 @@ export class UsersService extends ItemsService {
 
 		const payload = { email, scope: 'password-reset' };
 		const token = jwt.sign(payload, env.SECRET as string, { expiresIn: '1d' });
+
+		const urlWhitelist = toArray(env.PASSWORD_RESET_URL_ALLOW_LIST);
+
+		if (url && urlWhitelist.includes(url) === false) {
+			throw new InvalidPayloadException(`Url "${url}" can't be used to reset passwords.`);
+		}
 
 		const acceptURL = url ? `${url}?token=${token}` : `${env.PUBLIC_URL}/admin/reset-password?token=${token}`;
 

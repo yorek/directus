@@ -30,6 +30,7 @@ fields:
   - field: avatar
     interface: file
     width: full
+    display: image
 
   - field: location
     interface: text-input
@@ -53,13 +54,17 @@ fields:
     width: full
     options:
       iconRight: local_offer
+    display: labels
+    display_options:
+      defaultBackground: '#ECEFF1'
+      choices: null
+      format: false
 
   - field: preferences_divider
     interface: divider
     options:
       icon: face
       title: User Preferences
-      color: '#2F80ED'
     special: alias
     width: full
 
@@ -89,7 +94,7 @@ fields:
     options:
       icon: verified_user
       title: Admin Options
-      color: '#F2994A'
+      color: '#E35169'
     special: alias
     width: full
 
@@ -115,6 +120,9 @@ fields:
       template: '{{ name }}'
     special: m2o
     width: half
+    display: related-values
+    display_options:
+      template: '{{ name }}'
 
   - field: token
     interface: token
@@ -135,3 +143,6 @@ fields:
 
   - field: last_access
     width: half
+    display: datetime
+    display_options:
+      relative: true

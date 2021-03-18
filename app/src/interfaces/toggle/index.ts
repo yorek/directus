@@ -11,6 +11,18 @@ export default defineInterface(({ i18n }) => ({
 	recommendedDisplays: ['boolean'],
 	options: [
 		{
+			field: 'iconOn',
+			name: i18n.t('icon_on'),
+			type: 'string',
+			meta: {
+				width: 'half',
+				interface: 'icon',
+			},
+			schema: {
+				default_value: 'check_box',
+			},
+		},
+		{
 			field: 'iconOff',
 			name: i18n.t('icon_off'),
 			type: 'string',
@@ -18,14 +30,8 @@ export default defineInterface(({ i18n }) => ({
 				width: 'half',
 				interface: 'icon',
 			},
-		},
-		{
-			field: 'iconOn',
-			name: i18n.t('icon_on'),
-			type: 'string',
-			meta: {
-				width: 'half',
-				interface: 'icon',
+			schema: {
+				default_value: 'check_box_outline_blank',
 			},
 		},
 		{
@@ -50,6 +56,9 @@ export default defineInterface(({ i18n }) => ({
 			meta: {
 				width: 'half',
 				interface: 'color',
+			},
+			schema: {
+				default_value: '#00C897',
 			},
 		},
 	],

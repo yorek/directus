@@ -12,6 +12,7 @@ import { toArray } from '../utils/to-array';
 import { extension } from 'mime-types';
 import path from 'path';
 import env from '../env';
+import logger from '../logger';
 
 export class FilesService extends ItemsService {
 	constructor(options: AbstractServiceOptions) {
@@ -26,6 +27,8 @@ export class FilesService extends ItemsService {
 		const payload = clone(data);
 
 		if (primaryKey !== undefined) {
+			await this.update(payload, primaryKey);
+
 			// If the file you're uploading already exists, we'll consider this upload a replace. In that case, we'll
 			// delete the previously saved file and thumbnails to ensure they're generated fresh
 			const disk = storage.disk(payload.storage);
@@ -33,8 +36,6 @@ export class FilesService extends ItemsService {
 			for await (const file of disk.flatList(String(primaryKey))) {
 				await disk.delete(file.path);
 			}
-
-			await this.update(payload, primaryKey);
 		} else {
 			primaryKey = await this.create(payload);
 		}
@@ -47,36 +48,59 @@ export class FilesService extends ItemsService {
 			payload.type = 'application/octet-stream';
 		}
 
-		if (['image/jpeg', 'image/png', 'image/webp'].includes(payload.type)) {
-			const pipeline = sharp();
+		try {
+			await storage.disk(data.storage).put(payload.filename_disk, stream);
+		} catch (err) {
+			logger.warn(`Couldn't save file ${payload.filename_disk}`);
+			logger.warn(err);
+		}
 
-			pipeline.metadata().then((meta) => {
+		const { size } = await storage.disk(data.storage).getStat(payload.filename_disk);
+		payload.filesize = size;
+
+		if (['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/tiff'].includes(payload.type)) {
+			const buffer = await storage.disk(data.storage).getBuffer(payload.filename_disk);
+			const meta = await sharp(buffer.content, {}).metadata();
+
+			if (meta.orientation && meta.orientation >= 5) {
+				payload.height = meta.width;
+				payload.width = meta.height;
+			} else {
 				payload.width = meta.width;
 				payload.height = meta.height;
-				payload.filesize = meta.size;
-				payload.metadata = {};
+			}
 
-				if (meta.icc) {
+			payload.filesize = meta.size;
+			payload.metadata = {};
+
+			if (meta.icc) {
+				try {
 					payload.metadata.icc = parseICC(meta.icc);
+				} catch (err) {
+					logger.warn(`Couldn't extract ICC information from file`);
+					logger.warn(err);
 				}
+			}
 
-				if (meta.exif) {
+			if (meta.exif) {
+				try {
 					payload.metadata.exif = parseEXIF(meta.exif);
+				} catch (err) {
+					logger.warn(`Couldn't extract EXIF information from file`);
+					logger.warn(err);
 				}
+			}
 
-				if (meta.iptc) {
+			if (meta.iptc) {
+				try {
 					payload.metadata.iptc = parseIPTC(meta.iptc);
-
 					payload.title = payload.title || payload.metadata.iptc.headline;
 					payload.description = payload.description || payload.metadata.iptc.caption;
+				} catch (err) {
+					logger.warn(`Couldn't extract IPTC information from file`);
+					logger.warn(err);
 				}
-			});
-
-			await storage.disk(data.storage).put(payload.filename_disk, stream.pipe(pipeline));
-		} else {
-			await storage.disk(data.storage).put(payload.filename_disk, stream);
-			const { size } = await storage.disk(data.storage).getStat(payload.filename_disk);
-			payload.filesize = size;
+			}
 		}
 
 		// We do this in a service without accountability. Even if you don't have update permissions to the file,
@@ -85,6 +109,7 @@ export class FilesService extends ItemsService {
 			knex: this.knex,
 			schema: this.schema,
 		});
+
 		await sudoService.update(payload, primaryKey);
 
 		if (cache && env.CACHE_AUTO_PURGE) {
@@ -104,6 +129,8 @@ export class FilesService extends ItemsService {
 			throw new ForbiddenException();
 		}
 
+		await super.delete(keys);
+
 		files = toArray(files);
 
 		for (const file of files) {
@@ -114,8 +141,6 @@ export class FilesService extends ItemsService {
 				await disk.delete(path);
 			}
 		}
-
-		await super.delete(keys);
 
 		if (cache && env.CACHE_AUTO_PURGE) {
 			await cache.clear();

@@ -1,4 +1,4 @@
-import Knex, { ColumnBuilder } from 'knex';
+import { Knex } from 'knex';
 import fse from 'fs-extra';
 import path from 'path';
 import yaml from 'js-yaml';
@@ -43,7 +43,7 @@ export default async function runSeed(database: Knex) {
 
 		await database.schema.createTable(seedData.table, (tableBuilder) => {
 			for (const [columnName, columnInfo] of Object.entries(seedData.columns)) {
-				let column: ColumnBuilder;
+				let column: Knex.ColumnBuilder;
 
 				if (columnInfo.type === 'string') {
 					column = tableBuilder.string(columnName, columnInfo.length);
@@ -51,6 +51,8 @@ export default async function runSeed(database: Knex) {
 					column = tableBuilder.increments();
 				} else if (columnInfo.type === 'csv') {
 					column = tableBuilder.string(columnName);
+				} else if (columnInfo.type === 'hash') {
+					column = tableBuilder.string(columnName, 255);
 				} else {
 					column = tableBuilder[columnInfo.type!](columnName);
 				}

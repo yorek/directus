@@ -1,4 +1,4 @@
-import Knex from 'knex';
+import { Knex } from 'knex';
 import database from '../database';
 import { AbstractServiceOptions, Accountability, Collection, Field, Relation, Query, SchemaOverview } from '../types';
 import {
@@ -11,6 +11,8 @@ import {
 	ObjectFieldNode,
 	GraphQLID,
 	FieldNode,
+	InlineFragmentNode,
+	SelectionNode,
 	GraphQLFieldConfigMap,
 	GraphQLInt,
 	IntValueNode,
@@ -21,10 +23,11 @@ import {
 	ObjectValueNode,
 	GraphQLUnionType,
 } from 'graphql';
+import logger from '../logger';
 import { getGraphQLType } from '../utils/get-graphql-type';
 import { RelationsService } from './relations';
 import { ItemsService } from './items';
-import { cloneDeep } from 'lodash';
+import { cloneDeep, set, merge, get, mapKeys } from 'lodash';
 import { sanitizeQuery } from '../utils/sanitize-query';
 
 import { ActivityService } from './activity';
@@ -62,7 +65,7 @@ export class GraphQLService {
 
 	args = {
 		sort: {
-			type: GraphQLString,
+			type: new GraphQLList(GraphQLString),
 		},
 		limit: {
 			type: GraphQLInt,
@@ -79,9 +82,19 @@ export class GraphQLService {
 	};
 
 	async getSchema() {
-		const collectionsInSystem = await this.collectionsService.readByQuery();
+		let collectionsInSystem: Collection[] = [];
+
+		// Collections service will throw an error if you don't have access to any collection.
+		// We still want GraphQL / GraphiQL to function though, even if you don't have access to `items`
+		// (you could still have access to auth/server/etc)
+		try {
+			collectionsInSystem = await this.collectionsService.readByQuery();
+		} catch {
+			collectionsInSystem = [];
+		}
+
 		const fieldsInSystem = await this.fieldsService.readAll();
-		const relationsInSystem = (await this.relationsService.readByQuery({})) as Relation[];
+		const relationsInSystem = (await this.relationsService.readByQuery({ limit: -1 })) as Relation[];
 
 		const schema = this.getGraphQLSchema(collectionsInSystem, fieldsInSystem, relationsInSystem);
 
@@ -104,6 +117,13 @@ export class GraphQLService {
 						const fieldsInCollection = fields.filter((field) => field.collection === collection.collection);
 
 						for (const field of fieldsInCollection) {
+							if (field.field.startsWith('__')) {
+								logger.warn(
+									`GraphQL doesn't allow fields starting with "__". Field "${field.field}" in collection "${field.collection}" is unavailable in the GraphQL endpoint.`
+								);
+								continue;
+							}
+
 							const relationForField = relations.find((relation) => {
 								return (
 									(relation.many_collection === collection.collection && relation.many_field === field.field) ||
@@ -159,14 +179,27 @@ export class GraphQLService {
 
 									fieldsObject[field.field] = {
 										type: new GraphQLUnionType({
-											name: field.field,
+											name: field.collection + '__' + field.field,
 											types,
-											resolveType(value, _, info) {
-												/**
-												 * @TODO figure out a way to reach the parent level
-												 * to be able to read one_collection_field
-												 */
-												return types[0];
+											resolveType(value, context, info) {
+												let path: (string | number)[] = [];
+												let currentPath = info.path;
+
+												while (currentPath.prev) {
+													path.push(currentPath.key);
+													currentPath = currentPath.prev;
+												}
+
+												path = path.reverse().slice(1, -1);
+
+												let parent = context.data;
+
+												for (const pathPart of path) {
+													parent = parent[pathPart];
+												}
+
+												const type = parent[relationForField.one_collection_field!];
+												return types.find((GraphQLType: any) => GraphQLType.name === type);
 											},
 										}),
 									};
@@ -183,8 +216,10 @@ export class GraphQLService {
 						return fieldsObject;
 					},
 				}),
-				resolve: (source: any, args: any, context: any, info: GraphQLResolveInfo) => {
-					return this.resolve(info);
+				resolve: async (source: any, args: any, context: any, info: GraphQLResolveInfo) => {
+					const data = await this.resolve(info);
+					context.data = data;
+					return data;
 				},
 				args: {
 					...this.args,
@@ -221,7 +256,7 @@ export class GraphQLService {
 		}
 
 		const queryBase: any = {
-			name: 'Directus',
+			name: 'Query',
 			fields: {
 				server: {
 					type: new GraphQLObjectType({
@@ -237,6 +272,14 @@ export class GraphQLService {
 				},
 			},
 		};
+
+		if (Object.keys(schemaWithLists).length > 0) {
+			for (const key of Object.keys(schemaWithLists)) {
+				if (key !== 'items') {
+					queryBase.fields[key] = schemaWithLists[key];
+				}
+			}
+		}
 
 		if (Object.keys(schemaWithLists.items).length > 0) {
 			queryBase.fields.items = {
@@ -272,6 +315,8 @@ export class GraphQLService {
 					const fieldsInCollection = fields.filter((field) => field.collection === collection.collection);
 
 					for (const field of fieldsInCollection) {
+						if (field.field.startsWith('__')) continue;
+
 						const relationForField = relations.find((relation) => {
 							return (
 								(relation.many_collection === collection.collection && relation.many_field === field.field) ||
@@ -369,13 +414,8 @@ export class GraphQLService {
 
 	async resolve(info: GraphQLResolveInfo) {
 		const systemField = info.path.prev?.key !== 'items';
-
 		const collection = systemField ? `directus_${info.fieldName}` : info.fieldName;
-
-		const selections = info.fieldNodes[0]?.selectionSet?.selections?.filter((node) => node.kind === 'Field') as
-			| FieldNode[]
-			| undefined;
-
+		const selections = info.fieldNodes[0]?.selectionSet?.selections;
 		if (!selections) return null;
 
 		return await this.getData(collection, selections, info.fieldNodes[0].arguments || [], info.variableValues);
@@ -383,7 +423,7 @@ export class GraphQLService {
 
 	async getData(
 		collection: string,
-		selections: FieldNode[],
+		selections: readonly SelectionNode[],
 		argsArray: readonly ArgumentNode[],
 		variableValues: GraphQLResolveInfo['variableValues']
 	) {
@@ -391,34 +431,60 @@ export class GraphQLService {
 
 		const query: Query = sanitizeQuery(args, this.accountability);
 
-		const parseFields = (selections: FieldNode[], parent?: string): string[] => {
+		const parseFields = (selections: readonly SelectionNode[], parent?: string): string[] => {
 			const fields: string[] = [];
 
-			for (const selection of selections) {
-				const current = parent ? `${parent}.${selection.name.value}` : selection.name.value;
+			for (let selection of selections) {
+				if ((selection.kind === 'Field' || selection.kind === 'InlineFragment') !== true) continue;
+				selection = selection as FieldNode | InlineFragmentNode;
 
-				if (selection.selectionSet === undefined) {
-					fields.push(current);
+				let current: string;
+
+				if (selection.kind === 'InlineFragment') {
+					// filter out graphql pointers, like __typename
+					if (selection.typeCondition!.name.value.startsWith('__')) continue;
+
+					current = `${parent}:${selection.typeCondition!.name.value}`;
 				} else {
-					const children = parseFields(
-						selection.selectionSet.selections.filter((selection) => selection.kind === 'Field') as FieldNode[],
-						current
-					);
-					fields.push(...children);
+					// filter out graphql pointers, like __typename
+					if (selection.name.value.startsWith('__')) continue;
+					current = selection.name.value;
+
+					if (parent) {
+						current = `${parent}.${current}`;
+					}
 				}
 
-				if (selection.arguments && selection.arguments.length > 0) {
-					if (!query.deep) query.deep = {};
+				if (selection.selectionSet) {
+					const children = parseFields(selection.selectionSet.selections, current);
 
-					const args: Record<string, any> = this.parseArgs(selection.arguments, variableValues);
-					query.deep[current] = sanitizeQuery(args, this.accountability);
+					fields.push(...children);
+				} else {
+					fields.push(current);
+				}
+
+				if (selection.kind === 'Field' && selection.arguments && selection.arguments.length > 0) {
+					if (selection.arguments && selection.arguments.length > 0) {
+						if (!query.deep) query.deep = {};
+
+						const args: Record<string, any> = this.parseArgs(selection.arguments, variableValues);
+
+						set(
+							query.deep,
+							current,
+							merge(
+								get(query.deep, current),
+								mapKeys(sanitizeQuery(args, this.accountability), (value, key) => `_${key}`)
+							)
+						);
+					}
 				}
 			}
 
 			return fields;
 		};
 
-		query.fields = parseFields(selections.filter((selection) => selection.kind === 'Field') as FieldNode[]);
+		query.fields = parseFields(selections);
 
 		let service: ItemsService;
 
@@ -511,8 +577,9 @@ export class GraphQLService {
 			(await this.knex.select('singleton').from('directus_collections').where({ collection: collection }).first()) ||
 			systemCollectionRows.find((collectionMeta) => collectionMeta?.collection === collection);
 
-		const result = collectionInfo?.singleton ? await service.readSingleton(query) : await service.readByQuery(query);
-
+		const result = collectionInfo?.singleton
+			? await service.readSingleton(query, { stripNonRequested: false })
+			: await service.readByQuery(query, { stripNonRequested: false });
 		return result;
 	}
 

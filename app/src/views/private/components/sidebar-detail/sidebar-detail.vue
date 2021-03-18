@@ -9,6 +9,9 @@
 			<div class="title" v-show="sidebarOpen">
 				{{ title }}
 			</div>
+			<div class="icon" v-if="!close">
+				<v-icon class="expand-icon" :name="active ? 'expand_less' : 'expand_more'" outline />
+			</div>
 		</button>
 		<div v-if="close" v-show="sidebarOpen" class="close" @click="sidebarOpen = false">
 			<v-icon name="close" />
@@ -61,8 +64,8 @@ export default defineComponent({
 
 <style>
 body {
-	--sidebar-detail-icon-color: var(--foreground-normal);
-	--sidebar-detail-color: var(--foreground-normal);
+	--sidebar-detail-icon-color: var(--foreground-normal-alt);
+	--sidebar-detail-color: var(--foreground-normal-alt);
 	--sidebar-detail-color-active: var(--primary);
 }
 </style>
@@ -72,14 +75,16 @@ body {
 	--v-badge-offset-x: 2px;
 	--v-badge-offset-y: 4px;
 	--v-badge-border-color: var(--background-normal-alt);
-	--v-badge-background-color: var(--foreground-normal);
+	--v-badge-background-color: var(--primary);
 	--v-badge-color: var(--background-normal);
 
 	display: contents;
 
 	.toggle {
 		position: relative;
+		display: flex;
 		flex-shrink: 0;
+		justify-content: space-between;
 		width: 100%;
 		height: 64px;
 		color: var(--sidebar-detail-color);
@@ -162,6 +167,10 @@ body {
 				}
 			}
 		}
+	}
+
+	.expand-icon {
+		color: var(--foreground-subdued);
 	}
 }
 </style>

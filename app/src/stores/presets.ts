@@ -3,7 +3,7 @@ import { Preset } from '@/types';
 import { useUserStore } from '@/stores/';
 import api from '@/api';
 import { nanoid } from 'nanoid';
-import { merge } from 'lodash';
+import { merge, cloneDeep, isEqual } from 'lodash';
 
 const defaultPreset: Omit<Preset, 'collection'> = {
 	bookmark: null,
@@ -239,6 +239,7 @@ export const usePresetsStore = createStore({
 		 * Saves the given preset. If it's the default preset, it saves it as a new preset. If the
 		 * preset already exists, but doesn't have a user associated, it will create a preset for
 		 * the user. If the preset already exists and is for a user, we update the preset.
+		 * The response gets added to the store.
 		 */
 		async savePreset(preset: Preset) {
 			const userStore = useUserStore();
@@ -246,7 +247,7 @@ export const usePresetsStore = createStore({
 			const { id: userID } = userStore.state.currentUser;
 
 			// Clone the preset to make sure the future deletes don't affect the original object
-			preset = { ...preset };
+			preset = cloneDeep(preset);
 
 			if (preset.id === undefined || preset.id === null) {
 				return await this.create({
@@ -272,10 +273,7 @@ export const usePresetsStore = createStore({
 		saveLocal(updatedPreset: Preset) {
 			this.state.collectionPresets = this.state.collectionPresets.map((preset) => {
 				if (preset.id === updatedPreset.id) {
-					return {
-						...updatedPreset,
-						$saved: false,
-					};
+					return { ...updatedPreset };
 				}
 
 				return preset;
